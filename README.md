@@ -1,136 +1,105 @@
-[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/b1x675tx)
-# SSN-college-software-architecture-Assignments-
-Assignment repository for building custom Python ETL data connectors (Kyureeus EdTech, SSN CSE). Students: Submit your ETL scripts here. Make sure your commit message includes your name and roll number.
-# Software Architecture Assignment: Custom Python ETL Data Connector
+# Blocklist.de ETL Connector
 
-Welcome to the official repository for submitting your Software Architecture assignment on building custom data connectors (ETL pipelines) in Python. This assignment is part of the Kyureeus EdTech program for SSN CSE students.
+**Student:** Keerthana K <br>
+**Register No:** 3122225001060
 
----
-Guideline: Building and Managing Custom Data Connectors (ETL Pipeline) in Python
+## 1. Overview
 
-1. Setting Up the Connector Environment
-a. Choose Your API Provider: Identify a data provider and understand its Base URL, Endpoints, and Authentication.
-b. Understand the API Documentation: Focus on headers, query params, pagination, rate limits, and response structure.
+This project implements a **Python-based ETL (Extract, Transform, Load) connector** that ingests public **Blocklist.de IP blacklist feeds**, transforms the data into structured documents, and loads them into a **MongoDB** database.
 
+Blocklist.de provides public lists of IPs that are actively engaging in suspicious or malicious activity (e.g., SSH attacks, brute force attempts, botnet activity). This connector fetches these feeds periodically, handles errors and retries gracefully, and stores the IPs in collections for further analysis or security automation.
 
-2. Secure API Authentication Using Environment Variables
-a. Create a `.env` File Locally: Store API keys and secrets as KEY=VALUE pairs.
-b. Load Environment Variables in Code: Use libraries like `dotenv` to securely load environment variables.
+## 2. Features
 
+- **Multiple Feed Support:** Supports various Blocklist.de IP list endpoints (e.g., SSH, Mail, Apache, Bots, etc.)  
+- **Retry & Backoff:** Robust HTTP fetching with exponential backoff for transient network errors  
+- **MongoDB Integration:** Inserts cleaned documents into a MongoDB collection per connector  
+- **Timestamps & Metadata:** Adds `fetched_at` timestamps and source metadata to each document  
+- **Error Handling:** Logs network errors, server errors, and bulk write issues with clear messages  
+- **Modular Structure:** Clean separation of ETL steps (Extract, Transform, Load) for maintainability
 
-3. Design the ETL Pipeline
-Extract: Connect to the API, pass tokens/headers, and collect JSON data.
-Transform: Clean or reformat the data for MongoDB compatibility.
-Load: Store the transformed data into a MongoDB collection.
+## 3. Project Structure
 
+```
 
-4. MongoDB Collection Strategy
-Use one collection per connector, e.g., `connector_name_raw`.
-Store ingestion timestamps to support audits or updates.
+blocklist_etl/
+├── etl_connector.py        # Main ETL connector script
+├── requirements.txt        # Python dependencies
+├── .env.example            # Environment variable template
+├── .gitignore              # Ignore secrets & venv
+└── README.md               # Project documentation
+````
 
+## 4. Setup Instructions
 
-5. Iterative Testing & Validation
-Test for invalid responses, empty payloads, rate limits, and connectivity errors.
-Ensure consistent insertion into MongoDB.
+### 4.1 Install Dependencies
+```bash
+pip install -r requirements.txt
+```
 
+### 4.2 Create Environment File
+Create a `.env` file with the following content:
 
-6. Git and Project Structure Guidelines
-a. Use a Central Git Repository: Clone the shared repo and create a new branch for your connector.
-b. Ignore Secrets: Add `.env` to `.gitignore` before the first commit.
-c. Push and Document: Write README.md with endpoint details, API usage, and example output.
+```
+MONGO_URI=mongodb://localhost:27017
+DB_NAME=threat_feeds
+```
 
+### 4.3 Run the ETL Connector
 
-Final Checklist for Students
-Understand API documentation
-Secure credentials in `.env`
-Build complete ETL script
-Validate MongoDB inserts
-Push code to your branch
-Include descriptive README
-Submit Pull Request
+```bash
+python etl_connector.py
+```
 
-## 📋 Assignment Overview
+The script will:
 
-**Goal:**  
-Develop a Python script to connect with an API provider, extract data, transform it for compatibility, and load it into a MongoDB collection. Follow secure coding and project structure practices as outlined below.
+* Download data from all configured DShield feeds
+* Parse and transform the data
+* Insert the data into the corresponding MongoDB collections
 
----
+## 5. Endpoints Covered
 
-## ✅ Submission Checklist
+The script connects to the following **Blocklist.de IP list endpoints**:
 
-- [ ] Choose a data provider (API) and understand its documentation
-- [ ] Secure all API credentials using a `.env` file
-- [ ] Build a complete ETL pipeline: Extract → Transform → Load (into MongoDB)
-- [ ] Test and validate your pipeline (handle errors, invalid data, rate limits, etc.)
-- [ ] Follow the provided Git project structure
-- [ ] Write a clear and descriptive `README.md` in your folder with API details and usage instructions
-- [ ] **Include your name and roll number in your commit messages**
-- [ ] Push your code to your branch and submit a Pull Request
+| Service | URL                                                                                        |
+| ------- | ------------------------------------------------------------------------------------------ |
+| SSH     | [https://lists.blocklist.de/lists/ssh.txt](https://lists.blocklist.de/lists/ssh.txt)       |
+| Mail    | [https://lists.blocklist.de/lists/mail.txt](https://lists.blocklist.de/lists/mail.txt)     |
+| Apache  | [https://lists.blocklist.de/lists/apache.txt](https://lists.blocklist.de/lists/apache.txt) |
+| IMAP    | [https://lists.blocklist.de/lists/imap.txt](https://lists.blocklist.de/lists/imap.txt)     |
+| FTP     | [https://lists.blocklist.de/lists/ftp.txt](https://lists.blocklist.de/lists/ftp.txt)       |
+| Bots    | [https://lists.blocklist.de/lists/bots.txt](https://lists.blocklist.de/lists/bots.txt)     |
 
----
+Each endpoint returns a plain-text list of suspicious IP addresses. These are parsed and stored in MongoDB along with service metadata and timestamps.
 
-## 📦 Project Structure
+## 6. How It Works
 
-/your-branch-name/
-├── etl_connector.py
-├── .env
-├── requirements.txt
-├── README.md
-└── (any additional scripts or configs)
+### 1. **Extract**
 
+* Uses `requests` to download the plaintext IP lists from each Blocklist.de endpoint.
+* Implements retry logic with exponential backoff on network and server errors.
 
-- **`.env`**: Store sensitive credentials; do **not** commit this file.
-- **`etl_connector.py`**: Your main ETL script.
-- **`requirements.txt`**: List all Python dependencies.
-- **`README.md`**: Instructions for your connector.
+### 2. **Transform**
 
----
+* Parses the raw text line by line.
+* Filters out comments and empty lines.
+* Structures each IP into a Python dict with fields:
 
-## 🛡️ Secure Authentication
+  ```json
+  {
+    "ip": "185.224.128.17",
+    "count1": 475183,
+    "count2": 9728,
+    "first_seen": "2022-11-18",
+    "last_seen": "2025-10-15",
+    "source": "ipsascii",
+    "fetched_at": {
+      "$date": "2025-10-15T15:29:16.218Z"
+    }
+  }
+  ```
 
-- Store all API keys/secrets in a local `.env` file.
-- Load credentials using the `dotenv` Python library.
-- Add `.env` to `.gitignore` before committing.
+### 3. **Load**
 
----
-
-## 🗃️ MongoDB Guidelines
-
-- Use one MongoDB collection per connector (e.g., `connectorname_raw`).
-- Store ingestion timestamps for audit and update purposes.
-
----
-
-## 🧪 Testing & Validation
-
-- Check for invalid responses, empty payloads, rate limits, and connectivity issues.
-- Ensure data is correctly inserted into MongoDB.
-
----
-
-## 📝 Git & Submission Guidelines
-
-1. **Clone the repository** and create your own branch.
-2. **Add your code and documentation** in your folder/branch.
-3. **Do not commit** your `.env` or secrets.
-4. **Write clear commit messages** (include your name and roll number).
-5. **Submit a Pull Request** when done.
-
----
-
-## 💡 Additional Resources
-
-- [python-dotenv Documentation](https://saurabh-kumar.com/python-dotenv/)
-- [MongoDB Python Driver (PyMongo)](https://pymongo.readthedocs.io/en/stable/)
-- [API Documentation Example](https://restfulapi.net/)
-
----
-
-## 📢 Need Help?
-
-- Post your queries in the [KYUREEUS/SSN College - WhatsApp group](#) .
-- Discuss issues, share progress, and help each other.
-
----
-
-Happy coding! 🚀
+* Connects to MongoDB using `pymongo`.
+* Inserts the parsed documents into a collection. 

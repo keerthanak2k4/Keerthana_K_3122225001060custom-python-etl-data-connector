@@ -1,0 +1,3 @@
+BLOCKLIST_BASE=https://www.blocklist.de
+MONGO_URI=your_mongo_uri
+MONGO_DB=your_database_name

@@ -100,7 +100,7 @@ Each endpoint returns a plain-text list of suspicious IP addresses. These are pa
   
   ```
 
-  <img width="1312" height="521" alt="image" src="https://github.com/user-attachments/assets/49a1d7b7-6098-42cc-b15b-cee7ee53e37c" />
+
 
 
 ### 3. **Load**

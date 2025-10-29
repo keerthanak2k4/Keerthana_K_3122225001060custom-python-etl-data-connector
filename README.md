@@ -109,6 +109,8 @@ Each endpoint returns a plain-text list of suspicious IP addresses. These are pa
 * Inserts the parsed documents into a collection.
 
 
-<img width="1312" height="521" alt="image" src="https://github.com/user-attachments/assets/9b8b3d78-e5a7-4fb4-9bad-c35a77a29a4a" />
 
 
+
+
+![output_1](https://github.com/user-attachments/assets/53465209-d799-4953-8d30-742842b2c219)
